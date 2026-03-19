@@ -1,26 +1,44 @@
-### 1. 查询用户（GET）
+### 1. 测试登录接口（放行，不需要 Token）
+GET http://localhost:8080/api/users/login
+Accept: application/json
+
+### 2. 测试查询用户（放行，不需要 Token）
 GET http://localhost:8080/api/users/1
 Accept: application/json
 
-### 2. 新增用户（POST）
+### 3. 测试注册用户（放行，不需要 Token）
 POST http://localhost:8080/api/users
 Content-Type: application/json
 
 {
-  "name": "张三",
-  "age": 20,
-  "id": 1
+  "username": "newUser",
+  "email": "new@example.com"
 }
 
-### 3. 更新用户（PUT）
+### 4. 测试更新用户（需要 Token，不带 Token 会返回 401）
 PUT http://localhost:8080/api/users/1
 Content-Type: application/json
 
 {
-  "name": "李四",
-  "age": 22
+  "username": "updatedUser",
+  "email": "updated@example.com"
 }
 
-### 4. 删除用户（DELETE）
+### 5. 测试更新用户（带 Token，放行）
+PUT http://localhost:8080/api/users/1
+Content-Type: application/json
+Authorization: Bearer test-token-123
+
+{
+  "username": "updatedUser",
+  "email": "updated@example.com"
+}
+
+### 6. 测试删除用户（带 Token，放行）
+DELETE http://localhost:8080/api/users/1
+Authorization: Bearer test-token-123
+
+
+### 测试删除用户（无 Token，会返回 401）
 DELETE http://localhost:8080/api/users/1
 Accept: application/json
