@@ -1,72 +1,80 @@
 package com.stu.hellosever.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import cn.hutool.json.JSONUtil;
 import com.stu.hellosever.common.Result;
 import com.stu.hellosever.common.ResultCode;
-import com.stu.hellosever.dto.UserDTO;
-import com.stu.hellosever.entity.User;
-import com.stu.hellosever.mapper.UserMapper;
+import com.stu.hellosever.entity.UserInfo;
+import com.stu.hellosever.mapper.UserInfoMapper;
 import com.stu.hellosever.service.UserService;
+import com.stu.hellosever.vo.UserDetailVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class UserServiceImpl implements UserService {
 
+    private static final String CACHE_KEY_PREFIX = "user:detail:";
+
     @Autowired
-    private UserMapper userMapper;
+    private UserInfoMapper userInfoMapper;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
     @Override
-    public Result<String> register(UserDTO userDTO) {
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getUsername, userDTO.getUsername());
-        User dbUser = userMapper.selectOne(queryWrapper);
+    public Result<UserDetailVO> getUserDetail(Long userId) {
+        String key = CACHE_KEY_PREFIX + userId;
 
-        if (dbUser != null) {
-            return Result.error(ResultCode.USER_HAS_EXISTED);
+        // 查缓存
+        String json = redisTemplate.opsForValue().get(key);
+        if (json != null && !json.isBlank()) {
+            try {
+                UserDetailVO cacheVO = JSONUtil.toBean(json, UserDetailVO.class);
+                return Result.success(cacheVO);
+            } catch (Exception e) {
+                redisTemplate.delete(key);
+            }
         }
 
-        User user = new User();
-        user.setUsername(userDTO.getUsername());
-        user.setPassword(userDTO.getPassword());
-
-        userMapper.insert(user);
-
-        return Result.success("注册成功!");
-    }
-
-    @Override
-    public Result<String> login(UserDTO userDTO) {
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getUsername, userDTO.getUsername());
-        User dbUser = userMapper.selectOne(queryWrapper);
-
-        if (dbUser == null) {
+        // 查数据库
+        UserDetailVO detail = userInfoMapper.getUserDetail(userId);
+        if (detail == null) {
             return Result.error(ResultCode.USER_NOT_EXIST);
         }
 
-        if (!dbUser.getPassword().equals(userDTO.getPassword())) {
-            return Result.error(ResultCode.PWD_ERROR);
-        }
+        // 写入缓存
+        redisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(detail), 10, TimeUnit.MINUTES);
 
-        return Result.success("登录成功!");
+        return Result.success(detail);
     }
 
     @Override
-    public Result<String> getUserById(Integer id) {
-        User dbUser = userMapper.selectById(id);
-
-        if (dbUser == null) {
-            return Result.error(ResultCode.USER_NOT_EXIST);
+    @Transactional
+    public Result<String> updateUserInfo(UserInfo userInfo) {
+        if (userInfo == null || userInfo.getUserId() == null) {
+            return Result.error(ResultCode.ERROR);
         }
-        return Result.success("查询成功：" + dbUser.getUsername());
+
+        int rows = userInfoMapper.updateById(userInfo);
+        if (rows > 0) {
+            redisTemplate.delete(CACHE_KEY_PREFIX + userInfo.getUserId());
+            return Result.success("更新成功");
+        }
+        return Result.error(ResultCode.ERROR);
     }
 
     @Override
-    public Result<Object> getUserPage(Integer pageNum, Integer pageSize) {
-        Page<User> page = new Page<>(pageNum, pageSize);
-        Page<User> resultPage = userMapper.selectPage(page, null);
-        return Result.success(resultPage);
+    @Transactional
+    public Result<String> deleteUser(Long userId) {
+        int rows = userInfoMapper.deleteById(userId);
+        if (rows > 0) {
+            redisTemplate.delete(CACHE_KEY_PREFIX + userId);
+            return Result.success("删除成功");
+        }
+        return Result.error(ResultCode.ERROR);
     }
 }

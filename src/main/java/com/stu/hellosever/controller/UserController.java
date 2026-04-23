@@ -1,39 +1,40 @@
 package com.stu.hellosever.controller;
 
 import com.stu.hellosever.common.Result;
-import com.stu.hellosever.dto.UserDTO;
+import com.stu.hellosever.entity.UserInfo;
 import com.stu.hellosever.service.UserService;
+import com.stu.hellosever.vo.UserDetailVO;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
-    private final UserService userService;
+    @Autowired
+    private UserService userService;
 
-    public UserController(UserService userService) {
-        this.userService = userService;
+    // 测试接口，无权限拦截
+    @GetMapping("/testCache")
+    public Result<String> testCache() {
+        return Result.success("缓存测试成功！项目运行正常！");
     }
 
-    @PostMapping("/register")
-    public Result<String> register(@RequestBody UserDTO userDTO) {
-        return userService.register(userDTO);
+    @GetMapping("/{id}/detail")
+    public Result<UserDetailVO> getUserDetail(@PathVariable("id") Long userId) {
+        return userService.getUserDetail(userId);
     }
 
-    @PostMapping("/login")
-    public Result<String> login(@RequestBody UserDTO userDTO) {
-        return userService.login(userDTO);
+    @PutMapping("/{id}/detail")
+    public Result<String> updateUserInfo(
+            @PathVariable("id") Long userId,
+            @RequestBody UserInfo userInfo) {
+        userInfo.setUserId(userId);
+        return userService.updateUserInfo(userInfo);
     }
 
-    @GetMapping("/{id}")
-    public Result<String> getUserById(@PathVariable Integer id) {
-        return userService.getUserById(id);
-    }
-
-    @GetMapping("/page")
-    public Result<Object> getUserPage(
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "5") Integer pageSize) {
-        return userService.getUserPage(pageNum, pageSize);
+    @DeleteMapping("/{id}")
+    public Result<String> deleteUser(@PathVariable("id") Long userId) {
+        return userService.deleteUser(userId);
     }
 }

@@ -1,13 +1,12 @@
 package com.stu.hellosever.service;
 
 import com.stu.hellosever.common.Result;
-import com.stu.hellosever.dto.UserDTO;
+import com.stu.hellosever.entity.UserInfo;
+import com.stu.hellosever.vo.UserDetailVO;
 
 public interface UserService {
-    Result<String> register(UserDTO userDTO); // 注册方法
-    Result<String> login(UserDTO userDTO);     // 登录方法
-    Result<String> getUserById(Integer id);   // 实验新增：根据ID查询（适配MySQL Integer）
-
-
-    Result<Object> getUserPage(Integer pageNum, Integer pageSize);
+    // 这三个方法必须声明，否则 Controller 里调用会报错
+    Result<UserDetailVO> getUserDetail(Long userId);
+    Result<String> updateUserInfo(UserInfo userInfo);
+    Result<String> deleteUser(Long userId);
 }
