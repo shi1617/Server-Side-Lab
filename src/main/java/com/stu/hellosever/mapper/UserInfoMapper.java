@@ -6,6 +6,7 @@ import com.stu.hellosever.vo.UserDetailVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.springframework.security.core.userdetails.UserDetails;
 
 @Mapper
 public interface UserInfoMapper extends BaseMapper<UserInfo> {
@@ -23,4 +24,8 @@ public interface UserInfoMapper extends BaseMapper<UserInfo> {
             WHERE u.id = #{userId}
             """)
     UserDetailVO getUserDetail(@Param("userId") Long userId);
+
+    // ===================== 我帮你加的 JWT 必需方法 =====================
+    @Select("SELECT username, password FROM sys_user WHERE username = #{username}")
+    UserDetails findByUsername(@Param("username") String username);
 }

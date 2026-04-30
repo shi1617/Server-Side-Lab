@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class UserDetailVO {
-    private Long userId;
+    private Long userId;   // 你这里是 userId！！！
     private String username;
     private String realName;
     private String phone;

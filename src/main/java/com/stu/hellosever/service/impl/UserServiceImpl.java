@@ -1,80 +1,53 @@
 package com.stu.hellosever.service.impl;
 
-import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.stu.hellosever.common.Result;
-import com.stu.hellosever.common.ResultCode;
 import com.stu.hellosever.entity.UserInfo;
 import com.stu.hellosever.mapper.UserInfoMapper;
+import com.stu.hellosever.security.JwtUtil;
 import com.stu.hellosever.service.UserService;
 import com.stu.hellosever.vo.UserDetailVO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.concurrent.TimeUnit;
 
 @Service
-public class UserServiceImpl implements UserService {
-
-    private static final String CACHE_KEY_PREFIX = "user:detail:";
+public class UserServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> implements UserService {
 
     @Autowired
-    private UserInfoMapper userInfoMapper;
+    private JwtUtil jwtUtil;
 
-    @Autowired
-    private StringRedisTemplate redisTemplate;
+    @Override
+    public Result<String> login(String username, String password) {
+        LambdaQueryWrapper<UserInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserInfo::getUsername, username);
+        UserInfo user = getOne(wrapper);
+
+        // 用户名或密码错误
+        if (user == null || !user.getPassword().equals(password)) {
+            return Result.success(null);
+        }
+
+        // 生成真实 JWT 并返回
+        String token = jwtUtil.generateToken(username);
+        return Result.success(token);
+    }
 
     @Override
     public Result<UserDetailVO> getUserDetail(Long userId) {
-        String key = CACHE_KEY_PREFIX + userId;
-
-        // 查缓存
-        String json = redisTemplate.opsForValue().get(key);
-        if (json != null && !json.isBlank()) {
-            try {
-                UserDetailVO cacheVO = JSONUtil.toBean(json, UserDetailVO.class);
-                return Result.success(cacheVO);
-            } catch (Exception e) {
-                redisTemplate.delete(key);
-            }
+        UserInfo user = getById(userId);
+        if (user == null) {
+            return Result.success(null);
         }
-
-        // 查数据库
-        UserDetailVO detail = userInfoMapper.getUserDetail(userId);
-        if (detail == null) {
-            return Result.error(ResultCode.USER_NOT_EXIST);
-        }
-
-        // 写入缓存
-        redisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(detail), 10, TimeUnit.MINUTES);
-
-        return Result.success(detail);
+        UserDetailVO vo = new UserDetailVO();
+        vo.setUserId(user.getId());
+        vo.setUsername(user.getUsername());
+        return Result.success(vo);
     }
 
     @Override
-    @Transactional
     public Result<String> updateUserInfo(UserInfo userInfo) {
-        if (userInfo == null || userInfo.getUserId() == null) {
-            return Result.error(ResultCode.ERROR);
-        }
-
-        int rows = userInfoMapper.updateById(userInfo);
-        if (rows > 0) {
-            redisTemplate.delete(CACHE_KEY_PREFIX + userInfo.getUserId());
-            return Result.success("更新成功");
-        }
-        return Result.error(ResultCode.ERROR);
-    }
-
-    @Override
-    @Transactional
-    public Result<String> deleteUser(Long userId) {
-        int rows = userInfoMapper.deleteById(userId);
-        if (rows > 0) {
-            redisTemplate.delete(CACHE_KEY_PREFIX + userId);
-            return Result.success("删除成功");
-        }
-        return Result.error(ResultCode.ERROR);
+        updateById(userInfo);
+        return Result.success("修改成功");
     }
 }

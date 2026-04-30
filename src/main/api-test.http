@@ -1,17 +1,17 @@
-### 1. 查询用户详情（第一次会查数据库，第二次走Redis缓存）
-GET http://localhost:8080/api/users/1/detail
-Accept: application/json
-
-### 2. 更新用户信息（更新后会自动删除Redis缓存）
-PUT http://localhost:8080/api/users/1/detail
+### 1. 测试登录接口（获取 JWT Token）
+POST http://localhost:8080/api/users/login
 Content-Type: application/json
 
 {
-  "realName": "测试用户",
-  "phone": "13800138000",
-  "address": "测试地址"
+  "username": "test",
+  "password": "123456"
 }
 
-### 3. 删除用户（删除后会自动删除Redis缓存）
-DELETE http://localhost:8080/api/users/1
-Accept: application/json
+### 2. 携带 Token 访问受保护接口（必须登录才能访问）
+GET http://localhost:8080/api/users/1/detail
+Authorization: Bearer 这里替换成你登录返回的Token
+Content-Type: application/json
+
+### 3. 不带 Token 访问（应该被拦截=401/403）
+GET http://localhost:8080/api/users/1/detail
+Content-Type: application/json
