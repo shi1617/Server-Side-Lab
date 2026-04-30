@@ -48,6 +48,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Spring Security 权限认证 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
         <!-- 🔥 修复：SpringBoot 3 专用版本 -->
         <dependency>
             <groupId>cn.hutool</groupId>
