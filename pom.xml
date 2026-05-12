@@ -48,13 +48,11 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Spring Security 权限认证 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
-        <!-- JWT 依赖（兼容 Spring Boot 3）-->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
